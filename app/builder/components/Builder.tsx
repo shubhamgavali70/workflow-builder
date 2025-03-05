@@ -1,7 +1,7 @@
 // app/builder/components/Builder.tsx
 'use client';
 
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -11,24 +11,24 @@ import ReactFlow, {
   SelectionMode,
   OnDrop,
   OnDragOver,
+  useKeyPress,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { useBuilderStore } from '@/app/lib/store';
 import Sidebar from './Sidebar';
 import NodeConfigPanel from './NodeConfigPanel';
+import TemplateTreePanel from './TemplateTreePanel';
 import AgentNode from './NodeTypes/AgentNode';
 import WorkflowNode from './NodeTypes/WorkflowNode';
 import ToolNode from './NodeTypes/ToolNode';
-import WorkflowEditor from './WorkflowEditor';
-import WorkflowCreationDialog from './WorkflowCreationDialog';
-
 import { Button } from '@/components/ui/button';
 import { 
   Download, 
   Save, 
-  Trash2
+  Trash2 
 } from 'lucide-react';
+import { WorkflowNodeData } from '@/app/lib/types';
 
 const nodeTypes: NodeTypes = {
   agent: AgentNode,
@@ -39,8 +39,6 @@ const nodeTypes: NodeTypes = {
 export default function Builder() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
-  const [isWorkflowEditorOpen, setIsWorkflowEditorOpen] = useState(false);
-  const [selectedWorkflowNodeId, setSelectedWorkflowNodeId] = useState<string | null>(null);
   
   const {
     nodes,
@@ -53,20 +51,46 @@ export default function Builder() {
     addNode
   } = useBuilderStore();
 
-  useEffect(() => {
-    // Listen for workflow editor open events
-    const handleOpenWorkflowEditor = (event: CustomEvent) => {
-      const { nodeId } = event.detail;
-      setSelectedWorkflowNodeId(nodeId);
-      setIsWorkflowEditorOpen(true);
-    };
-
-    window.addEventListener('open-workflow-editor' as any, handleOpenWorkflowEditor as EventListener);
-
-    return () => {
-      window.removeEventListener('open-workflow-editor' as any, handleOpenWorkflowEditor as EventListener);
-    };
+  const handleNodeDeletion = useCallback(() => {
+    // This ensures we're properly cleaning up any selected nodes
+    // when they're deleted using keyboard shortcuts
+    const { selectedNode, nodes } = useBuilderStore.getState();
+    
+    // If a node was selected but is no longer in the nodes list, it was deleted
+    if (selectedNode && !nodes.some(node => node.id === selectedNode.id)) {
+      useBuilderStore.setState({ selectedNode: null });
+      
+      // Find any workflow nodes that might need updating
+      const workflowNodes = nodes.filter(node => node.data.type === 'workflow');
+      
+      workflowNodes.forEach(workflowNode => {
+        const workflowData = workflowNode.data as WorkflowNodeData;
+        
+        // If the workflow references the deleted node, update it
+        if (workflowData.graph.nodes.some(n => n.id === selectedNode.id)) {
+          const updatedNodes = workflowData.graph.nodes.filter(n => n.id !== selectedNode.id);
+          const updatedEdges = workflowData.graph.edges.filter(e => 
+            e.source !== selectedNode.id && e.target !== selectedNode.id
+          );
+          
+          useBuilderStore.getState().updateNodeData(workflowNode.id, {
+            graph: {
+              nodes: updatedNodes,
+              edges: updatedEdges
+            }
+          } as Partial<WorkflowNodeData>);
+        }
+      });
+    }
   }, []);
+
+  const deletePressed = useKeyPress(['Delete', 'Backspace']);
+
+  useEffect(() => {
+    if (deletePressed) {
+      handleNodeDeletion();
+    }
+  }, [deletePressed, handleNodeDeletion]);
 
   const onDragOver: OnDragOver = useCallback((event) => {
     event.preventDefault();
@@ -123,17 +147,6 @@ export default function Builder() {
     }
   }, []);
 
-  const handleWorkflowCreated = (nodeId: string) => {
-    // Optionally open the workflow editor immediately after creation
-    setSelectedWorkflowNodeId(nodeId);
-    setIsWorkflowEditorOpen(true);
-  };
-
-  const closeWorkflowEditor = () => {
-    setIsWorkflowEditorOpen(false);
-    setSelectedWorkflowNodeId(null);
-  };
-
   return (
     <div className="h-screen w-full flex">
       {/* Sidebar - Node palette */}
@@ -165,6 +178,7 @@ export default function Builder() {
           <MiniMap />
           
           <Panel position="top-right" className="flex gap-2">
+            <TemplateTreePanel />
             <Button 
               size="sm" 
               variant="outline" 
@@ -193,22 +207,11 @@ export default function Builder() {
               Clear
             </Button>
           </Panel>
-          
-          <Panel position="bottom-center" className="mb-4">
-            <WorkflowCreationDialog onCreated={handleWorkflowCreated} />
-          </Panel>
         </ReactFlow>
       </div>
 
       {/* Node configuration panel */}
       {selectedNode && <NodeConfigPanel />}
-      
-      {/* Workflow Editor Dialog */}
-      <WorkflowEditor 
-        isOpen={isWorkflowEditorOpen}
-        onClose={closeWorkflowEditor}
-        workflowNodeId={selectedWorkflowNodeId}
-      />
     </div>
   );
 }

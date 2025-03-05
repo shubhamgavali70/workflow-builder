@@ -1,4 +1,4 @@
-// app/builder/components/NodeConfigPanel.tsx
+// app/builder/components/NodeConfigPanel.tsx (updated)
 import { ChangeEvent } from 'react';
 import { useBuilderStore } from '@/app/lib/store';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { X } from 'lucide-react';
 import InstructionsInput from './CustomControls/InstructionsInput';
 import { AgentNodeData, ToolNodeData, WorkflowNodeData } from '@/app/lib/types';
+import WorkflowDetailView from './WorkflowDetailView';
 
 export default function NodeConfigPanel() {
   const { selectedNode, updateNodeData, nodes } = useBuilderStore();
@@ -104,15 +105,26 @@ export default function NodeConfigPanel() {
               <ul className="list-disc pl-5 mt-1">
                 <li>
                   {(selectedNode.data as WorkflowNodeData).graph.nodes.length} nodes
+                  {(selectedNode.data as WorkflowNodeData).graph.nodes.length > 0 && (
+                    <span className="text-xs ml-1">
+                      (
+                      {(selectedNode.data as WorkflowNodeData).graph.nodes.filter(n => n.data.type === 'agent').length} agents, 
+                      {(selectedNode.data as WorkflowNodeData).graph.nodes.filter(n => n.data.type === 'tool').length} tools
+                      )
+                    </span>
+                  )}
                 </li>
                 <li>
                   {(selectedNode.data as WorkflowNodeData).graph.edges.length} connections
                 </li>
               </ul>
             </div>
-            <Button variant="secondary" size="sm" className="mt-2">
-              Edit Workflow
-            </Button>
+            
+            <WorkflowDetailView workflowNode={selectedNode} />
+            
+            <div className="text-xs text-muted-foreground mt-4">
+              <p>Workflow nodes automatically update when you connect other nodes to them.</p>
+            </div>
           </div>
         )}
 
