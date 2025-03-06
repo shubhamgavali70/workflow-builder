@@ -46,6 +46,7 @@ export default function NodeTypeSelect({ value, onChange }: NodeTypeSelectProps)
   const selectedType = nodeTypes.find((type) => type.value === value);
 
   return (
+    <div className="bg-red-500">
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
@@ -89,5 +90,6 @@ export default function NodeTypeSelect({ value, onChange }: NodeTypeSelectProps)
         </Command>
       </PopoverContent>
     </Popover>
+    </div>
   );
 }

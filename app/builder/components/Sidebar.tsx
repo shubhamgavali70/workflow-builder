@@ -8,7 +8,7 @@ import WorkflowCreationDialog from './WorkflowCreationDialog';
 
 interface NodeTypeButtonProps {
   label: string;
-  type: 'agent' | 'workflow' | 'tool';
+  type: 'agent' | 'tool';
   icon: ReactNode;
   className?: string;
 }
@@ -62,12 +62,12 @@ export default function Sidebar() {
           icon={<Robot size={16} />}
           className="hover:border-violet-500 hover:text-violet-600"
         />
-        <NodeTypeButton
+        {/* <NodeTypeButton
           label="Simple Workflow"
           type="workflow"
           icon={<Network size={16} />}
           className="hover:border-blue-500 hover:text-blue-600"
-        />
+        /> */}
         <NodeTypeButton
           label="Tool"
           type="tool"
@@ -79,7 +79,7 @@ export default function Sidebar() {
       <Separator />
       
       <div>
-        <h3 className="text-sm font-medium mb-2">Workflow Templates</h3>
+        <h3 className="text-sm font-medium mb-2">Import WorkFlows</h3>
         <WorkflowCreationDialog onCreated={handleWorkflowCreated} />
       </div>
       

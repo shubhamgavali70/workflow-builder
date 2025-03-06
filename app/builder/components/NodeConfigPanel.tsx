@@ -1,4 +1,3 @@
-// app/builder/components/NodeConfigPanel.tsx (updated)
 import { ChangeEvent } from 'react';
 import { useBuilderStore } from '@/app/lib/store';
 import { Button } from '@/components/ui/button';
@@ -8,8 +7,14 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { X } from 'lucide-react';
 import InstructionsInput from './CustomControls/InstructionsInput';
-import { AgentNodeData, ToolNodeData, WorkflowNodeData } from '@/app/lib/types';
-import WorkflowDetailView from './WorkflowDetailView';
+import { AgentNodeData, ToolNodeData } from '@/app/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function NodeConfigPanel() {
   const { selectedNode, updateNodeData, nodes } = useBuilderStore();
@@ -23,6 +28,24 @@ export default function NodeConfigPanel() {
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     handleChange(name, value);
+  };
+
+  // Define available tools for the dropdown
+  const availableTools = [
+    { toolid: 'tool-1', toolName: 'Tool One' },
+    { toolid: 'tool-2', toolName: 'Tool Two' },
+    { toolid: 'tool-3', toolName: 'Tool Three' },
+  ];
+
+  // Handle the tool dropdown change event
+  const handleToolChange = (value: string) => {
+    const selectedTool = availableTools.find(tool => tool.toolid === value);
+    if (selectedTool) {
+      updateNodeData(selectedNode.id, {
+        name: selectedTool.toolName,
+        toolid: selectedTool.toolid,
+      });
+    }
   };
 
   // Close panel handler
@@ -43,22 +66,35 @@ export default function NodeConfigPanel() {
         {/* Common fields for all node types */}
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            name="name"
-            value={selectedNode.data.name}
-            onChange={handleInputChange}
-          />
+          {selectedNode.data.type === 'tool' ? (
+            <Select
+              value={(selectedNode.data as ToolNodeData).toolid || availableTools[0].toolid}
+              onValueChange={handleToolChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a tool" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTools.map(tool => (
+                  <SelectItem key={tool.toolid} value={tool.toolid}>
+                    {tool.toolName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="name"
+              name="name"
+              value={selectedNode.data.name}
+              onChange={handleInputChange}
+            />
+          )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="node_id">Node ID (Read-only)</Label>
-          <Input
-            id="node_id"
-            value={selectedNode.data.node_id}
-            readOnly
-            disabled
-          />
+          <Input id="node_id" value={selectedNode.data.node_id} readOnly disabled />
         </div>
 
         <Separator />
@@ -96,38 +132,6 @@ export default function NodeConfigPanel() {
           </>
         )}
 
-        {/* Workflow-specific fields */}
-        {selectedNode.data.type === 'workflow' && (
-          <div className="space-y-2">
-            <Label>Workflow Graph</Label>
-            <div className="text-sm text-muted-foreground">
-              <p>This workflow contains:</p>
-              <ul className="list-disc pl-5 mt-1">
-                <li>
-                  {(selectedNode.data as WorkflowNodeData).graph.nodes.length} nodes
-                  {(selectedNode.data as WorkflowNodeData).graph.nodes.length > 0 && (
-                    <span className="text-xs ml-1">
-                      (
-                      {(selectedNode.data as WorkflowNodeData).graph.nodes.filter(n => n.data.type === 'agent').length} agents, 
-                      {(selectedNode.data as WorkflowNodeData).graph.nodes.filter(n => n.data.type === 'tool').length} tools
-                      )
-                    </span>
-                  )}
-                </li>
-                <li>
-                  {(selectedNode.data as WorkflowNodeData).graph.edges.length} connections
-                </li>
-              </ul>
-            </div>
-            
-            <WorkflowDetailView workflowNode={selectedNode} />
-            
-            <div className="text-xs text-muted-foreground mt-4">
-              <p>Workflow nodes automatically update when you connect other nodes to them.</p>
-            </div>
-          </div>
-        )}
-
         {/* Tool-specific fields */}
         {selectedNode.data.type === 'tool' && (
           <div className="space-y-2">
@@ -137,7 +141,8 @@ export default function NodeConfigPanel() {
                 <div className="p-2 bg-muted rounded-md">
                   {
                     nodes.find(
-                      (n) => n.data.node_id === (selectedNode.data as ToolNodeData).connected_to
+                      (n) =>
+                        n.data.node_id === (selectedNode.data as ToolNodeData).connected_to
                     )?.data.name || 'Unknown Node'
                   }
                 </div>
