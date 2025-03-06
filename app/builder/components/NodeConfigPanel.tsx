@@ -1,3 +1,4 @@
+// app/builder/components/NodeConfigPanel.tsx (updated)
 import { ChangeEvent } from 'react';
 import { useBuilderStore } from '@/app/lib/store';
 import { Button } from '@/components/ui/button';
@@ -8,13 +9,6 @@ import { Separator } from '@/components/ui/separator';
 import { X } from 'lucide-react';
 import InstructionsInput from './CustomControls/InstructionsInput';
 import { AgentNodeData, ToolNodeData } from '@/app/lib/types';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 export default function NodeConfigPanel() {
   const { selectedNode, updateNodeData, nodes } = useBuilderStore();
@@ -28,24 +22,6 @@ export default function NodeConfigPanel() {
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     handleChange(name, value);
-  };
-
-  // Define available tools for the dropdown
-  const availableTools = [
-    { toolid: 'tool-1', toolName: 'Tool One' },
-    { toolid: 'tool-2', toolName: 'Tool Two' },
-    { toolid: 'tool-3', toolName: 'Tool Three' },
-  ];
-
-  // Handle the tool dropdown change event
-  const handleToolChange = (value: string) => {
-    const selectedTool = availableTools.find(tool => tool.toolid === value);
-    if (selectedTool) {
-      updateNodeData(selectedNode.id, {
-        name: selectedTool.toolName,
-        toolid: selectedTool.toolid,
-      });
-    }
   };
 
   // Close panel handler
@@ -66,35 +42,22 @@ export default function NodeConfigPanel() {
         {/* Common fields for all node types */}
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
-          {selectedNode.data.type === 'tool' ? (
-            <Select
-              value={(selectedNode.data as ToolNodeData).toolid || availableTools[0].toolid}
-              onValueChange={handleToolChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select a tool" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableTools.map(tool => (
-                  <SelectItem key={tool.toolid} value={tool.toolid}>
-                    {tool.toolName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              id="name"
-              name="name"
-              value={selectedNode.data.name}
-              onChange={handleInputChange}
-            />
-          )}
+          <Input
+            id="name"
+            name="name"
+            value={selectedNode.data.name}
+            onChange={handleInputChange}
+          />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="node_id">Node ID (Read-only)</Label>
-          <Input id="node_id" value={selectedNode.data.node_id} readOnly disabled />
+          <Input
+            id="node_id"
+            value={selectedNode.data.node_id}
+            readOnly
+            disabled
+          />
         </div>
 
         <Separator />
@@ -132,6 +95,7 @@ export default function NodeConfigPanel() {
           </>
         )}
 
+
         {/* Tool-specific fields */}
         {selectedNode.data.type === 'tool' && (
           <div className="space-y-2">
@@ -141,8 +105,7 @@ export default function NodeConfigPanel() {
                 <div className="p-2 bg-muted rounded-md">
                   {
                     nodes.find(
-                      (n) =>
-                        n.data.node_id === (selectedNode.data as ToolNodeData).connected_to
+                      (n) => n.data.node_id === (selectedNode.data as ToolNodeData).connected_to
                     )?.data.name || 'Unknown Node'
                   }
                 </div>
